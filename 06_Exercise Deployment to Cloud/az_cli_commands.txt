@@ -1,0 +1,87 @@
+### Create Azure Container Registry###
+
+# login to Azure through Azure CLI:
+
+az login
+
+# Create a new resource group:
+
+az group create --name <Resource group name (somenamerg)> --location westeurope
+
+# Create an Azure container registry:
+
+az acr create --resource-group <Resource group name (somenamerg)> --name <containar-registry-name (usersomenamecr)> --sku Basic
+
+# Log in to the container registry:
+
+az acr login --name <containar-registry-name (usersomenamecr)>
+
+### Tag Container Image ###
+
+# Get the full login server name for your Azure container registry:
+
+az acr show --name <containar-registry-name (usersomenamecr)> --query loginServer --output table
+
+# Tag the container image using Docker CLI command:
+
+docker tag <image-name> <containar-registry-name (usersomenamecr)>.azurecr.io/<image-name>:<version (v1)>
+
+### Push image to Azure Container Registry ###
+
+# Push your new image to Azure Container Registry: 
+
+docker push <containar-registry-name (usersomenamecr)>.azurecr.io/<image-name>:<version (v1)>
+
+# List the images in your Azure container registry:
+
+az acr repository list --name <containar-registry-name (usersomenamecr)>
+
+### Deploy a Container Application ###
+
+# Create and configure an Azure Active Directory (AD) service principal with pull permissions to your registry:
+
+$ACR_NAME='<containar-registry-name (usersomenamecr)>'
+$SERVICE_PRINCIPAL_NAME='<ServicePrincipalName (appnamesp)>'
+
+# Obtain the full registry ID:
+
+$ACR_REGISTRY_ID=$(az acr show --name $ACR_NAME --query "id" --output tsv)
+
+# Create and configure the service principal with pull permissions to your registry:
+
+$PASSWORD=$(az ad sp create-for-rbac --name $SERVICE_PRINCIPAL_NAME --scopes $ACR_REGISTRY_ID --role acrpull --query "password" --output tsv)
+$USER_NAME=$(az ad sp list --display-name $SERVICE_PRINCIPAL_NAME --query "[].appId" --output tsv)
+
+# Output the service principal's credentials:
+
+echo "Service principal ID: $USER_NAME"          # We must save username because is need to use in next step !
+echo "Service principal password: $PASSWORD"     # We must save password because is need to use in next step !
+
+NOTE: If you get the "Insufficient privileges to complete the operation." error message, go to "Container registries" in the Azure Portal and select the <containar-registry-name (usersomenamecr)>:
+After that, select Access keys and enable the Admin user:
+
+### Deploy Container ###
+
+# Deploy a container in Azure: 
+
+az container create --resource-group <Resource group name (somenamerg)> --name <container-name> --image <containar-registry-name (usersomenamecr)>.azurecr.io/<image-name>:<version (v1)> --cpu 1 --memory 1 --registry-login-server <containar-registry-name (usersomenamecr)>.azurecr.io --registry-username <username-from-previos-step> --registry-password <password-from-previos-step> --ip-address Public --dns-name-label <some-dns-name> --ports 80
+
+# To view the container state of deployment:
+
+az container show --resource-group <Resource group name (somenamerg)> --name <container-name> --query instanceView.state
+
+# Once the deployment succeeds, display the container's fully qualified domain name (FQDN):
+
+az container show --resource-group <Resource group name (somenamerg)> --name <container-name> --query ipAddress.fqdn
+
+# To see container IP Address in table:
+
+az container show --resource-group <Resource group name (somenamerg)> --name <container-name> --output table
+
+### View the log output of the container from Azure CLI ###
+
+az container logs --resource-group <Resource group name (somenamerg)> --name <container-name>
+
+### Clear all resources by deleting the resource group: ###
+
+az group delete --name <Resource group name (somenamerg)>
