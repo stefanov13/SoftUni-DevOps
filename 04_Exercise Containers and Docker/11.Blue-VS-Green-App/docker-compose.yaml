@@ -1,0 +1,56 @@
+version: '3.3'
+services:
+    redis:
+        container_name: redis
+        networks:
+            - backend
+        image: redis
+    postgres:
+        ports:
+            - '5432:5432'
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+        volumes:
+            - postgres-volume-data:/var/lib/postgresql/data
+        container_name: db
+        networks: 
+            - backend
+        image: 'postgres:latest'
+    vote:
+        container_name: vote
+        ports:
+            - '5000:80'
+        networks: 
+            - backend
+            - frontend
+        volumes:
+            - 'vote:/app'
+        image: lokumchev/vote
+    result:
+        container_name: result
+        ports:
+            - '5001:80'
+        networks: 
+            - backend
+            - frontend
+        volumes:
+            - 'result:/app'
+        image: lokumchev/result
+    worker:
+        container_name: worker
+        networks: 
+            - backend
+        image: lokumchev/worker
+networks:
+    frontend:
+        external: true
+    backend:
+        external: true
+volumes:
+    postgres-volume-data:
+        external: true
+    result:
+        external: true
+    vote:
+        external: true
