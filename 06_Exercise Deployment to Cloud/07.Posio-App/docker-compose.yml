@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+    app:
+      container_name: posio
+      build: .
+      image: lokumchevposiocr.azurecr.io/posio:v1
+      volumes:
+        - posio-data:/posio
+      environment:
+        - POSIO_SETTINGS=/app/config.py
+      ports:
+        - 5000:5000
+
+volumes:
+  posio-data:
+    driver: azure_file
+    driver_opts:
+      share_name: my-volume
+      storage_account_name: mylokumstorageacc
